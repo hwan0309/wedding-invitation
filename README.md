@@ -1,36 +1,119 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 다솜 · 무료 모바일 청첩장 (프로토타입)
 
-## Getting Started
+모바일 청첩장 서비스입니다.
+제작 · 무제한 수정 · 공유 · 평생 소장이 전부 무료이고, 결제 단계 자체가 없습니다.
 
-First, run the development server:
+> 서비스 이름 `다솜`은 임시입니다. `src/lib/config.ts`
+
+## 실행
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
+npm run build    # 프로덕션 빌드(모든 라우트의 정적 셸 검증 포함)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 핵심: 수정하면 이미 보낸 링크에 바로 반영
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. 청첩장 주소는 `/i/{id}` 하나로 고정입니다. 내용은 저장소에서 읽어 그리므로 링크·QR은 절대 바뀌지 않아요.
+2. 하객용 데이터는 `getPublicInvitation()`에서 `"use cache"` + `cacheTag("invitation-{id}")`로 캐시합니다. 하객이 몰려도 DB를 매번 읽지 않아요.
+3. 편집기에서 **저장** → 서버 액션 `saveInvitation`이 저장소를 갱신하고 `updateTag()`로 그 청첩장 캐시만 비웁니다. 다음 요청부터 새 내용이 보여요.
+4. 편집기 미리보기와 하객 페이지는 같은 `InvitationView` 컴포넌트라서, 미리보기에서 본 그대로 반영됩니다.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 로그인 (카카오 · Google)
 
-## Learn More
+- `/login` 별도 페이지. `/create`, `/edit/*`, `/my/*`는 로그인이 필요하고, 로그인 후 원래 가려던 곳으로 돌아갑니다.
+- **자동 로그인**: 체크(기본값)하면 30일 유지 + 사이트를 쓸 때마다 다시 30일 연장. 해제하면 브라우저를 닫을 때 로그아웃.
+- **Google 원탭**: 예전에 Google로 로그인한 사람은 로그인 페이지에 들어오면 클릭 없이 바로 로그인됩니다. 로그아웃 직후에는 자동으로 다시 들어가지 않아요.
+- **카카오톡 안에서 열었을 때**: 구글은 앱 내장 브라우저 로그인을 막기 때문에 Google 버튼이 외부 브라우저로 열어 줍니다. 카카오 로그인은 그대로 됩니다.
+- 키를 넣기 전에도 개발 모드(`npm run dev`)에서는 **테스트 계정으로 로그인** 버튼으로 전체 흐름을 확인할 수 있어요(프로덕션에서는 숨겨지고 404).
 
-To learn more about Next.js, take a look at the following resources:
+### 카카오 앱 등록 (developers.kakao.com)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+콘솔 메뉴 이름은 바뀔 수 있으니 아래 항목을 찾아 설정하세요.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. 내 애플리케이션 → 애플리케이션 추가
+2. **REST API 키** → `KAKAO_CLIENT_ID`
+3. **카카오 로그인 활성화** ON
+4. **Redirect URI** 등록: `http://localhost:3000/api/auth/callback/kakao` (배포 후 `https://도메인/api/auth/callback/kakao` 추가)
+5. **동의 항목**: 닉네임 · 프로필 사진 (이메일은 비즈 앱 전환 후 선택 동의로 받을 수 있어요)
+6. (권장) **Client Secret** 생성·활성화 → `KAKAO_CLIENT_SECRET`
 
-## Deploy on Vercel
+### Google 클라이언트 등록 (console.cloud.google.com)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. 프로젝트 만들기 → **Google Auth Platform**에서 앱 이름 · 지원 이메일 · 대상(외부) 설정
+2. **클라이언트 만들기** → 유형: 웹 애플리케이션
+   - 승인된 JavaScript 원본: `http://localhost` 와 `http://localhost:3000` (원탭에 필요)
+   - 승인된 리디렉션 URI: `http://localhost:3000/api/auth/callback/google`
+3. 클라이언트 ID · 보안 비밀 → `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> 개발 서버 포트를 바꾸면(예: 3100) Redirect URI·원본도 그 포트로 등록해야 해요.
+
+### 보안 설계
+
+- 세션 토큰은 무작위 32바이트, 저장소에는 **SHA-256 해시만** 저장(유출돼도 토큰 재사용 불가). 쿠키는 `HttpOnly` · `SameSite=Lax` · 운영에서 `Secure`.
+- OAuth `state`(CSRF 방지) + Google은 **PKCE**. 원탭은 Google 공개키로 서명 검증 + 일회용 nonce + Origin 확인.
+- 로그인 후 이동 주소(`next`)는 같은 사이트 경로만 허용(오픈 리다이렉트 차단).
+- `proxy.ts`는 쿠키 유무만 보는 빠른 확인이고, 실제 권한 확인은 모든 페이지 · 서버 액션 · API에서 저장소 기준으로 다시 합니다.
+
+## 구조
+
+```
+src/
+├─ app/
+│  ├─ page.tsx              랜딩 (웨딩 사진 슬라이드 첫 화면 · 샘플 넘겨보기 · 3단계 안내)
+│  ├─ create/               테마 선택 → 예시 내용이 채워진 청첩장 생성
+│  ├─ edit/[id]/            편집기 (기본 정보 · 디자인 · 섹션 구성 · 공유 + 실시간 미리보기)
+│  ├─ i/[id]/               하객용 청첩장 (고정 링크, 검색 엔진 비노출)
+│  ├─ samples/              샘플 12종 전체 보기
+│  ├─ sample/[theme]/       샘플 하나를 실제 청첩장처럼 보기
+│  ├─ my/  my/[id]/         내 청첩장(계정 정보 · QR · 복제 · 삭제) / 응답 관리(참석 의사 집계 · CSV · 방명록 관리)
+│  ├─ login/                로그인 페이지 (카카오 · Google · 원탭 · 자동 로그인)
+│  ├─ actions.ts            서버 액션 (생성 · 저장 · 삭제 · 복제) — 매번 로그인 사용자 = 소유자 확인
+│  ├─ auth-actions.ts       로그아웃
+│  └─ api/                  auth/(로그인 시작 · 콜백 · 원탭), 사진·음원 업로드, 방명록, 참석 의사
+├─ components/
+│  ├─ invitation/           청첩장 화면: 커버 12종 + 섹션 10개, 테마별 CSS
+│  ├─ editor/               편집기 탭과 입력 컴포넌트
+│  ├─ auth/                 로그인 패널 · 원탭 · 사용자 메뉴 · 앱 내 브라우저 감지
+│  └─ my/  site/            대시보드, 공용 UI (휴대폰 프레임, QR, 다이얼로그)
+└─ lib/
+   ├─ invitation/           데이터 스키마 · 기본값 · 테마/색상/글꼴 · 샘플 사진 · 날짜(KST 고정) · 검증
+   ├─ auth/                 세션 · OAuth(카카오 · Google) · ID 토큰 검증 · 로그인 처리
+   ├─ db/                   저장소 인터페이스 + 로컬 JSON 구현 (.data/db.json)
+   └─ server/               캐시 조회 · 업로드 · 비밀번호 해시
+proxy.ts                    로그인 필요한 페이지 빠른 리다이렉트 + 자동 로그인 쿠키 연장
+```
+
+## 디자인 · 샘플 사진
+
+- 디자인 12종(베이직 · 아치 · 포스터 · 클래식 · 레터링 · 미니멀 · 폴라로이드 · 매거진 · 서클 · 실링왁스 · 필름 · 콜라주) × 색상 8 · 글꼴 10 조합
+- 샘플과 첫 화면 사진은 [Unsplash](https://unsplash.com/license) 무료 라이선스 사진을 주소로 연결해서 씁니다. 모두 `src/lib/invitation/photos.ts` 한 곳에 모여 있어요.
+- **실서비스 전에는 직접 촬영했거나 모델 사용 동의가 확인된 사진으로 바꾸는 걸 권장해요.** Unsplash 라이선스는 저작권 사용을 허락하지만, 사진 속 인물의 초상권 동의까지 보장하지는 않아요.
+
+- **카카오톡 미리보기**: Next.js 16은 메타데이터를 `<body>`로 스트리밍하는데, 기본 봇 목록에 카카오톡 스크래퍼가 없어 OG 태그를 못 읽습니다. `next.config.ts`의 `htmlLimitedBots`에 `kakaotalk-scrap`을 추가해 `<head>`에 넣도록 했어요.
+- **날짜가 하루 밀리는 문제 방지**: 예식 일시를 `YYYY-MM-DD` / `HH:mm`(한국 시간) 문자열로 저장하고 UTC 연산으로만 계산합니다. 해외 하객도 같은 날짜를 봅니다.
+- **사진 용량**: 업로드 전에 브라우저에서 최대 1920px WebP(공유용은 JPEG)로 줄입니다. 무료 서비스의 저장·전송 비용을 크게 줄여요.
+- **업로드 검증**: 확장자가 아니라 파일 앞부분(매직 넘버)으로 실제 형식을 확인합니다.
+- **개인정보**: 청첩장 페이지는 `noindex`. 방명록 비밀번호는 scrypt 해시로 저장.
+
+## 프로토타입 → 배포 전에 바꿀 것
+
+| 지금                                        | 다음 단계                                                                              |
+| ------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 로컬 JSON 파일 (`.data/db.json`)            | Supabase Postgres — `lib/db/types.ts`의 `Store` 인터페이스만 구현해서 교체             |
+| 업로드 파일 로컬 저장                       | Supabase Storage — 브라우저에서 스토리지로 직접 업로드 (Vercel 함수는 요청 4.5MB 제한) |
+| 로그아웃만 있음                             | 회원 탈퇴 + 카카오 연결 끊기(unlink) — 카카오 운영 정책상 탈퇴 시 필요                 |
+| 사용자 · 세션도 JSON 파일                   | Postgres 테이블(users, sessions)로 — `Store` 인터페이스에 이미 포함                    |
+| 카카오 키 없으면 지도 모양 카드 + 기본 공유 | `NEXT_PUBLIC_KAKAO_JS_KEY` 설정 시 카카오 지도 · 카카오톡 공유 버튼 동작               |
+| 스팸 방지 없음                              | 방명록 · 참석 의사 요청 횟수 제한                                                      |
+
+## 환경 변수
+
+`.env.example`을 `.env.local`로 복사해서 채우세요(로그인 키 · 카카오 지도/공유 키 · 사이트 주소). `.env.local`은 커밋되지 않아요.
+
+## 참고: 아름이 무료로 운영되는 방식
+
+- 결제 단계 없음, 워터마크 없음, 계정당 3개, 평생 소장, 무제한 수정
+- 재원: 청첩장 하단의 **축하 화환 보내기**(제휴 수수료) + 광고 문의
+- 편집기 탭: 기본 정보 / 부가 기능(섹션 켜고 끄기) / 공유 기능
