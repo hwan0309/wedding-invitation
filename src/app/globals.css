@@ -95,31 +95,3 @@ body {
   min-height: 100svh;
   box-shadow: 0 0 40px rgb(0 0 0 / 0.06);
 }
-
-/* 랜딩 첫 화면 사진: 겹쳐 바뀌면서 천천히 줌아웃 */
-.hero-slide {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 1.6s ease;
-}
-.hero-slide.is-active {
-  opacity: 1;
-}
-.hero-slide img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  scale: 1.08;
-  transition: scale 8s ease-out;
-}
-.hero-slide.is-active img {
-  scale: 1;
-}
-@media (prefers-reduced-motion: reduce) {
-  .hero-slide,
-  .hero-slide img {
-    transition: none;
-    scale: 1;
-  }
-}

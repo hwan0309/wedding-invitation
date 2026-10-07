@@ -132,6 +132,17 @@ export const IconMusicOff = (p: IconProps) => (
     <path d="M3 3l18 18" />
   </svg>
 );
+export const IconPlay = (p: IconProps) => (
+  <svg {...base(p)} fill="currentColor" stroke="none">
+    <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" />
+  </svg>
+);
+export const IconPause = (p: IconProps) => (
+  <svg {...base(p)} fill="currentColor" stroke="none">
+    <rect x="6.5" y="5" width="4" height="14" rx="1.2" />
+    <rect x="13.5" y="5" width="4" height="14" rx="1.2" />
+  </svg>
+);
 export const IconLink = (p: IconProps) => (
   <svg {...base(p)}>
     <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />

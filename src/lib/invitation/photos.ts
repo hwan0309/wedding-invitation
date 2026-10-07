@@ -33,8 +33,15 @@ export function photo(key: PhotoKey, width = 1080, height?: number) {
   return `https://images.unsplash.com/${UNSPLASH[key]}?${params}`;
 }
 
-/** 랜딩 첫 화면 슬라이드 */
-export const HERO_PHOTOS: PhotoKey[] = ["veilField", "blossom", "stringLights", "sunsetWalk"];
+/**
+ * 랜딩 첫 화면 배경 영상(Pexels 무료 라이선스, 노을빛 부케 18초 반복).
+ * 휴대폰은 가벼운 SD(약 3.4MB), PC는 720p(약 5.7MB). poster는 영상이 준비되기 전에 보이는 이미지.
+ */
+export const HERO_VIDEO = {
+  mobile: "https://videos.pexels.com/video-files/6016143/6016143-sd_960_506_30fps.mp4",
+  desktop: "https://videos.pexels.com/video-files/6016143/6016143-hd_1366_720_30fps.mp4",
+  poster: "https://images.pexels.com/videos/6016143/pexels-photo-6016143.jpeg?auto=compress&cs=tinysrgb&w=1280",
+};
 
 /** 테마별 샘플 대표 사진 */
 export const COVER_PHOTO: Record<ThemeId, PhotoKey> = {

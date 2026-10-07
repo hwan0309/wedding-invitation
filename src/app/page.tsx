@@ -2,19 +2,14 @@ import Link from "next/link";
 import { FeatureIcon } from "@/components/site/FeatureIcons";
 import { IconCheck, IconChevronDown, IconChevronRight, IconLink, IconQr, IconTalk } from "@/components/icons";
 import { InvitationView } from "@/components/invitation/InvitationView";
-import { HeroSlideshow } from "@/components/site/HeroSlideshow";
+import { HeroVideo } from "@/components/site/HeroVideo";
 import { PhoneFrame } from "@/components/site/Phone";
 import { SampleCarousel } from "@/components/site/SampleCarousel";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
 import { LIMITS, SITE } from "@/lib/config";
 import { createSampleData } from "@/lib/invitation/defaults";
-import { HERO_PHOTOS, photo } from "@/lib/invitation/photos";
+import { HERO_VIDEO, photo } from "@/lib/invitation/photos";
 import { FONTS, PALETTES, THEMES } from "@/lib/invitation/themes";
-
-const HERO_SLIDES = HERO_PHOTOS.map((key) => ({
-  mobile: photo(key, 1080, 1920),
-  desktop: photo(key, 2000, 1250),
-}));
 
 const HIGHLIGHTS = [
   { icon: "toggle", title: "5분이면 완성", desc: "디자인을 고르면 예시 내용이 채워져 있어 고치기만 하면 돼요." },
@@ -92,10 +87,10 @@ export default function Home() {
     <>
       <SiteHeader />
       <main>
-        {/* ── 첫 화면: 웨딩 사진 ── */}
+        {/* ── 첫 화면: 웨딩 영상 ── */}
         <section className="relative isolate flex min-h-[calc(100svh-64px)] items-center justify-center overflow-hidden text-white">
-          <HeroSlideshow slides={HERO_SLIDES} />
-          <div className="px-6 py-24 text-center">
+          <HeroVideo video={HERO_VIDEO} />
+          <div className="px-6 py-24 text-center [text-shadow:0_2px_24px_rgb(0_0_0/0.35)]">
             <Eyebrow light>Mobile Wedding Invitation</Eyebrow>
             <h1 className="mt-6 font-display text-[58px] font-medium leading-[1] tracking-tight sm:text-[92px]">
               Our Story
